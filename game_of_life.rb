@@ -83,7 +83,6 @@ class GameOfLife
 				else
 					print "-"
 				end
-				print " "
 			end
 			print "\n"
 		end
@@ -94,8 +93,9 @@ class GameOfLife
 		$stderr.puts "input period(.) in new line to end input"
 		@cells_arr=[]
 		loop do 
-			ip=STDIN.gets
-			cols=ip.split
+			ip=STDIN.gets.gsub(/\s*/, "").chomp.strip
+			cols=[]
+			ip.each_char{|char| cols.push(char)}
 			arr_size=cols.size
 
 			if cols.first=="."
@@ -111,7 +111,7 @@ class GameOfLife
 
 			index=0
 			cols.each do |val| 
-				arg_hash={:ip=>val.chomp.strip,:row_index=>@row_count, :col_index=>index}
+				arg_hash={:ip=>val.chomp.strip.downcase,:row_index=>@row_count, :col_index=>index}
 				@cells_arr.push(Cell.new(arg_hash))
 				index+=1
 			end
