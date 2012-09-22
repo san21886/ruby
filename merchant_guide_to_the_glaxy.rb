@@ -10,6 +10,7 @@ module TransactionExpressionValidity
 		return true
 	end
 
+	#The symbols "I", "X", "C", and "M" can be repeated three times in succession, but no more
 	def check_max_3_consecutive_occurances(tokens)
 		more_than_3_consecutive_occurance=false
 		if tokens.size>=4
@@ -61,61 +62,7 @@ class IntergalacticTransactions
 	@@roman_numerals_symbol_value={:I=>1, :V=>5, :X=>10, :L=>50, :C=>100, :D=>500, :M=>1000}
 	@@substraction_validity_map={:I=>["V", "X"], :X=>["L", "C"], :C=>["D", "M"], :do_no_subtract=>["V", "L", "D"]}
 	def initialize(args_hash={})
-		@token_info_ip=[] #glob is I
-		@expression_ip=[] #glob glob Silver is 34 Credits
-		@quaries=[] #how many Credits is glob prok Silver ?
-		@unknown_token_value_map={}
-	end
-
-	def process_input_info
-		token_roman_map={} #it will hold mapping between new tokens and its corresponding roman symbol:{"glob" => "I", .....}
-		@token_info_ip.each do |token_info|
-			roman_symbol=token_info.chomp.strip.split.last.chomp.strip
-			token=token_info.chomp.strip.split.first.chomp.strip
-			token_roman_map[token]=roman_symbol
-		end
-		find_unknown_token_val(token_roman_map)
-		process_quaries(token_roman_map)
-	end
-
-	def process_quaries(token_roman_map)
-		@quaries.each do |expr|
-			temp_arr=[]
-			#loop for each token in expr like: "how many Credits is glob prok Silver ?"
-			token=expr.split(" is ").last
-			if not token
-				$log.info "invalid expr:#{expr}"
-				next
-			end
-			token=token.split("?").first
-			if not token
-				$log.info "invalid expr:#{expr}"
-				next
-			end
-
-			#token like :"glob prok Silver"
-			token_arr=[]
-			token.split.each do |val|
-				val=val.chomp.strip
-				if token_roman_map[val]
-					val=token_roman_map[val]
-				end
-				token_arr.push(val)
-			end
-
-			expression_valid=check_expression_validity(token_arr.join(" ")) #argument: "I V Silver"
-			if not expression_valid
-				$stderr.puts "invalid expression:#{expression}"
-				next
-			end
-
-			val=evaluate_quary(token_arr)
-			if val
-				puts "#{token} is #{val}"
-			else
-				puts "I have no idea what you are talking about"
-			end
-		end
+		super()
 	end
 
 	def get_token_value(token)
@@ -162,29 +109,8 @@ class IntergalacticTransactions
 		return sum
 	end
 
-	#find val of tokens like: Gold, Iron ... and index it to @unknown_token_value_map:{"Gold" => "57796", ...}
 	#eg. in expr:glob glob Silver is 34 Credits => I I Silver =>34, considering all operation validity(substraction, repetation..), find the Silver value 
-	def find_unknown_token_val(token_roman_map)
-		@expression_ip.each do |expression|
-			#expression :glob glob Silver is 34 Credits
-			split_expr=[]
-			expression.split.each do |val|
-				val=val.chomp.strip
-				if token_roman_map[val]
-					val=token_roman_map[val]
-
-				end
-				split_expr.push(val)
-			end
-			expression_validity=check_expression_validity(split_expr[0..-4].join(" ")) #argument: "I I Silver"
-			if not expression_validity
-				$stderr.puts "invalid expression:#{expression}"
-				exit 1
-			end
-			get_unknown_token_val(split_expr)
-		end
-	end
-
+	#returns hash object: {token_name=>token_value}
 	def get_unknown_token_val(split_expr)
 		#input is like [I, I, Silver, is, 34, Credits]
 		sum=split_expr[-2].to_i
@@ -197,48 +123,43 @@ class IntergalacticTransactions
 			num_val=get_token_value(only_tokens[index])
 			if not num_val
 				$stderr.puts "invalid token: #{only_tokens[index]} in the expression:#{split_expr.join(" ")}"
-				exit 1
+				temp_sum=nil
 			end
 			num_val2=get_token_value(only_tokens[index+1])
 			if not num_val2
 				$stderr.puts "invalid token: #{only_tokens[index+1]} in the expression:#{split_expr.join(" ")}"
-				exit 1
+				temp_sum=nil
 			end
 			if num_val2 > num_val and check_substraction_validity(num_val2, num_val)
 				temp_sum+=num_val2 - num_val
 				index+=2
 			elsif num_val2 > num_val and not check_substraction_validity(num_val2, num_val)
 				$stderr.puts "invalid substraction:#{only_tokens[index+1]} - #{only_tokens[index]}"
-				exit 1
+				temp_sum=nil
 			else
 				temp_sum+=num_val
 				index+=1
 			end
 		end
-
-		if index+1==only_tokens.size-1
-			remaining_sum=sum.to_i-temp_sum.to_i
-			num_val=get_token_value(only_tokens[index])
-
-			if not num_val
-				$stderr.puts "invalid token: #{only_tokens[index]} in the expression:#{split_expr.join(" ")}"
-				exit 1
+		
+		new_token_val=nil	
+		if temp_sum
+			if index+1==only_tokens.size-1
+				remaining_sum=sum.to_i-temp_sum.to_i
+				num_val=get_token_value(only_tokens[index])
+				if num_val
+					if num_val < remaining_sum/2
+						new_token_val=remaining_sum.to_i+num_val
+					else
+						new_token_val=remaining_sum.to_i-num_val
+					end
+				end
+			elsif index==only_tokens.size-1
+				new_token_val=sum.to_i-temp_sum.to_i
 			end
-
-			if num_val < remaining_sum/2
-				@unknown_token_value_map["#{unknown_token_name}"]=remaining_sum.to_i+num_val
-			else
-				@unknown_token_value_map["#{unknown_token_name}"]=remaining_sum.to_i-num_val
-			end
-		elsif index==only_tokens.size-1
-			@unknown_token_value_map["#{unknown_token_name}"]=sum.to_i-temp_sum.to_i
 		end
+		return {"#{unknown_token_name}"=>new_token_val}
 	end
-
-	
-
-	#The symbols "I", "X", "C", and "M" can be repeated three times in succession, but no more
-	
 
 	def check_substraction_validity(lhs, rhs)
 		lhs_key=@@roman_numerals_symbol_value.key(lhs)
@@ -250,6 +171,16 @@ class IntergalacticTransactions
 			return false
 		end
 		return true
+	end
+end
+
+class IntergalacticTransactionsQuery < IntergalacticTransactions
+	def initialize(args_hash={})
+		super
+		@token_info_ip=[] #glob is I
+		@expression_ip=[] #glob glob Silver is 34 Credits
+		@quaries=[] #how many Credits is glob prok Silver ?
+		@unknown_token_value_map={}
 	end
 
 	def get_input_transactions
@@ -276,8 +207,90 @@ class IntergalacticTransactions
 			end
 		end
 	end
+
+	def process_input_info
+		token_roman_map={} #it will hold mapping between new tokens and its corresponding roman symbol:{"glob" => "I", .....}
+		@token_info_ip.each do |token_info|
+			roman_symbol=token_info.chomp.strip.split.last.chomp.strip
+			token=token_info.chomp.strip.split.first.chomp.strip
+			token_roman_map[token]=roman_symbol
+		end
+		find_unknown_token_val(token_roman_map)
+		process_quaries(token_roman_map)
+	end
+
+	#find val of tokens like: Gold, Iron ... and index it to @unknown_token_value_map:{"Gold" => "57796", ...}
+	#eg. in expr:glob glob Silver is 34 Credits => I I Silver =>34, considering all operation validity(substraction, repetation..), find the Silver value 
+	def find_unknown_token_val(token_roman_map)
+		@expression_ip.each do |expression|
+			#expression :glob glob Silver is 34 Credits
+			split_expr=[]
+			expression.split.each do |val|
+				val=val.chomp.strip
+				if token_roman_map[val]
+					val=token_roman_map[val]
+
+				end
+				split_expr.push(val)
+			end
+			expression_validity=check_expression_validity(split_expr[0..-4].join(" ")) #argument: "I I Silver"
+			if not expression_validity
+				$stderr.puts "invalid expression:#{expression}"
+				exit 1
+			end
+			token_val_hash=get_unknown_token_val(split_expr)
+			token_name=token_val_hash.keys.first
+			token_val=token_val_hash.values.first
+			if not token_val
+				$stderr.puts "invalid token: #{token_name} in the expression:#{expression}"
+				exit 1
+			else
+				@unknown_token_value_map[token_name]=token_val
+			end
+		end
+	end
+
+	def process_quaries(token_roman_map)
+		@quaries.each do |expr|
+			temp_arr=[]
+			#loop for each token in expr like: "how many Credits is glob prok Silver ?"
+			token=expr.split(" is ").last
+			if not token
+				$log.info "invalid expr:#{expr}"
+				next
+			end
+			token=token.split("?").first
+			if not token
+				$log.info "invalid expr:#{expr}"
+				next
+			end
+
+			#token like :"glob prok Silver"
+			token_arr=[]
+			token.split.each do |val|
+				val=val.chomp.strip
+				if token_roman_map[val]
+					val=token_roman_map[val]
+				end
+				token_arr.push(val)
+			end
+
+			expression_valid=check_expression_validity(token_arr.join(" ")) #argument: "I V Silver"
+			if not expression_valid
+				$stderr.puts "invalid expression:#{expression}"
+				next
+			end
+
+			val=evaluate_quary(token_arr)
+			if val
+				puts "#{token} is #{val}"
+			else
+				puts "I have no idea what you are talking about"
+			end
+		end
+	end
 end
 
-obj=IntergalacticTransactions.new
+obj=IntergalacticTransactionsQuery.new
 obj.get_input_transactions
 obj.process_input_info
