@@ -1,4 +1,63 @@
+module TransactionExpressionValidity
+	def check_expression_validity(expression)
+		tokens = expression.split
+		if not check_max_3_consecutive_occurances(tokens)
+			return false
+		end
+		if not check_no_repetation(tokens)
+			return false
+		end
+		return true
+	end
+
+	def check_max_3_consecutive_occurances(tokens)
+		more_than_3_consecutive_occurance=false
+		if tokens.size>=4
+			start_index=0
+			last_index=3
+			while last_index <= tokens.size-1
+				slice=tokens[start_index..last_index]
+				if slice.uniq.size==1 and ["I", "X", "C", "M"].include?(slice.uniq.first)
+					$stderr.puts "#{slice.uniq.first} occurred more than 3 times consecutively"
+					more_than_3_consecutive_occurance=true
+					break
+				end
+				start_index+=1
+				last_index+=1
+			end
+		end
+
+		if more_than_3_consecutive_occurance
+			return false
+		else
+			return true
+		end
+	end
+
+	#"D", "L", and "V" can never be repeated.
+	def check_no_repetation(tokens)
+		repetation=false
+		if tokens.size>1
+			["D", "L", "V"].each do |roman|
+				slice=tokens.select{|val| val==roman}
+				if slice.size>1
+					$stderr.puts "#{slice.first} has been repeated"
+					repetation=true
+					break
+				end
+			end
+		end
+
+		if repetation
+			return false
+		else
+			return true
+		end
+	end
+end
+
 class IntergalacticTransactions
+	include TransactionExpressionValidity
 	@@roman_numerals_symbol_value={:I=>1, :V=>5, :X=>10, :L=>50, :C=>100, :D=>500, :M=>1000}
 	@@substraction_validity_map={:I=>["V", "X"], :X=>["L", "C"], :C=>["D", "M"], :do_no_subtract=>["V", "L", "D"]}
 	def initialize(args_hash={})
@@ -176,41 +235,10 @@ class IntergalacticTransactions
 		end
 	end
 
-	def check_expression_validity(expression)
-		tokens = expression.split
-		if not check_max_3_consecutive_occurances(tokens)
-			return false
-		end
-		if not check_no_repetation(tokens)
-			return false
-		end
-		return true
-	end
+	
 
 	#The symbols "I", "X", "C", and "M" can be repeated three times in succession, but no more
-	def check_max_3_consecutive_occurances(tokens)
-		more_than_3_consecutive_occurance=false
-		if tokens.size>=4
-			start_index=0
-			last_index=3
-			while last_index <= tokens.size-1
-				slice=tokens[start_index..last_index]
-				if slice.uniq.size==1 and ["I", "X", "C", "M"].include?(slice.uniq.first)
-					$stderr.puts "#{slice.uniq.first} occurred more than 3 times consecutively"
-					more_than_3_consecutive_occurance=true
-					break
-				end
-				start_index+=1
-				last_index+=1
-			end
-		end
-
-		if more_than_3_consecutive_occurance
-			return false
-		else
-			return true
-		end
-	end
+	
 
 	def check_substraction_validity(lhs, rhs)
 		lhs_key=@@roman_numerals_symbol_value.key(lhs)
@@ -222,27 +250,6 @@ class IntergalacticTransactions
 			return false
 		end
 		return true
-	end
-
-	#"D", "L", and "V" can never be repeated.
-	def check_no_repetation(tokens)
-		repetation=false
-		if tokens.size>1
-			["D", "L", "V"].each do |roman|
-				slice=tokens.select{|val| val==roman}
-				if slice.size>1
-					$stderr.puts "#{slice.first} has been repeated"
-					repetation=true
-					break
-				end
-			end
-		end
-
-		if repetation
-			return false
-		else
-			return true
-		end
 	end
 
 	def get_input_transactions
