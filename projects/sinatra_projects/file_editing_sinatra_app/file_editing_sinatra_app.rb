@@ -1,4 +1,6 @@
-require 'sinatra'
+#require 'sinatra'
+require 'bundler'
+Bundler.require(:default)
 
 
 #authentication source:http://ididitmyway.heroku.com/past/2011/2/22/really_simple_authentication_in_sinatra/
