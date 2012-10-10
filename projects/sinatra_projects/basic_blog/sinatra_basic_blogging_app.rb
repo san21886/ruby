@@ -1,5 +1,7 @@
-require 'sinatra'
-require 'sequel'
+#require 'sinatra'
+#require 'sequel'
+require 'bundler'
+Bundler.require(:default)
 
 class SqliteDBOperation
 	attr_accessor :db
