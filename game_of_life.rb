@@ -167,3 +167,6 @@ class GameOfLife
 end
 
 GameOfLife.new.start_game
+
+#refractor code to include following changes:
+#1. if cell lives in 3 consecutive tick, then it dies as if due to ageing
